@@ -113,3 +113,69 @@ cleanup:
 	free_rpc_bdev_passthru_delete(&req);
 }
 SPDK_RPC_REGISTER("bdev_passthru_delete", rpc_bdev_passthru_delete, SPDK_RPC_RUNTIME)
+
+
+
+/* Structure to hold the statistics */
+struct rpc_passthru_stats {
+    char *name;
+};
+
+/* Free the memory allocated for the statistics */
+static void
+free_rpc_passthru_stats(struct rpc_passthru_stats *r)
+{
+    free(r->name);
+}
+
+/* Decode the RPC request parameters */
+static const struct spdk_json_object_decoder rpc_passthru_stats_decoder[] = {
+    {"name", offsetof(struct rpc_passthru_stats, name), spdk_json_decode_string},
+};
+
+/* Construct the RPC response */
+static void
+rpc_bdev_passthru_get_stats(struct spdk_jsonrpc_request *request,
+                            const struct spdk_json_val *params)
+{
+    struct rpc_passthru_stats req = {};
+    struct passthru_bdev_io *pt_bdev;
+    struct spdk_json_write_ctx *w;
+
+    if (spdk_json_decode_object(params, rpc_passthru_stats_decoder,
+                                SPDK_COUNTOF(rpc_passthru_stats_decoder), &req)) {
+        SPDK_ERRLOG("spdk_json_decode_object failed\n");
+        spdk_jsonrpc_send_error_response(request, SPDK_JSONRPC_ERROR_INVALID_PARAMS,
+                                         "Invalid parameters");
+        goto cleanup;
+    }
+
+    pt_bdev = spdk_bdev_get_by_name(req.name)->ctxt;
+    if (pt_bdev == NULL) {
+        SPDK_ERRLOG("passthru bdev not found: %s\n", req.name);
+        spdk_jsonrpc_send_error_response(request, SPDK_JSONRPC_ERROR_INVALID_PARAMS,
+                                         "Passthru bdev not found");
+        goto cleanup;
+    }
+
+    w = spdk_jsonrpc_begin_result(request);
+    if (w == NULL) {
+        goto cleanup;
+    }
+
+    spdk_json_write_object_begin(w);
+    spdk_json_write_named_uint64(w, "read_io_count",  pt_bdev->read_io_count);
+    spdk_json_write_named_uint64(w, "write_io_count", pt_bdev->write_io_count);
+    spdk_json_write_named_uint64(w, "blocked_io_count", pt_bdev->blocked_io_count);
+    spdk_json_write_named_uint64(w, "bytes_read", pt_bdev->bytes_read);
+    spdk_json_write_named_uint64(w, "bytes_written", pt_bdev->bytes_written);
+    spdk_json_write_object_end(w);
+
+    spdk_jsonrpc_end_result(request, w);
+
+cleanup:
+    free_rpc_passthru_stats(&req);
+}
+
+/* Register the RPC method */
+SPDK_RPC_REGISTER("bdev_passthru_get_stats", rpc_bdev_passthru_get_stats, SPDK_RPC_RUNTIME)

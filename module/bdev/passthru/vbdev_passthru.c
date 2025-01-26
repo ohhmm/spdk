@@ -73,19 +73,6 @@ struct pt_io_channel {
 	struct spdk_io_channel	*base_ch; /* IO channel of base device */
 };
 
-/* Just for fun, this pt_bdev module doesn't need it but this is essentially a per IO
- * context that we get handed by the bdev layer.
- */
-struct passthru_bdev_io {
-	uint8_t test;
-
-	/* bdev related */
-	struct spdk_io_channel *ch;
-
-	/* for bdev_io_wait */
-	struct spdk_bdev_io_wait_entry bdev_io_wait;
-};
-
 static void vbdev_passthru_submit_request(struct spdk_io_channel *ch, struct spdk_bdev_io *bdev_io);
 
 
@@ -287,6 +274,8 @@ vbdev_passthru_submit_request(struct spdk_io_channel *ch, struct spdk_bdev_io *b
 	case SPDK_BDEV_IO_TYPE_READ:
 		spdk_bdev_io_get_buf(bdev_io, pt_read_get_buf_cb,
 				     bdev_io->u.bdev.num_blocks * bdev_io->bdev->blocklen);
+		io_ctx->read_io_count++;
+        io_ctx->bytes_read += bdev_io->u.bdev.num_blocks * bdev_io->bdev->blocklen;
 		break;
 	case SPDK_BDEV_IO_TYPE_WRITE:
 		pt_init_ext_io_opts(bdev_io, &io_opts);
@@ -294,6 +283,8 @@ vbdev_passthru_submit_request(struct spdk_io_channel *ch, struct spdk_bdev_io *b
 						 bdev_io->u.bdev.iovcnt, bdev_io->u.bdev.offset_blocks,
 						 bdev_io->u.bdev.num_blocks, _pt_complete_io,
 						 bdev_io, &io_opts);
+		io_ctx->write_io_count++;
+		io_ctx->bytes_written += bdev_io->u.bdev.num_blocks * bdev_io->bdev->blocklen;
 		break;
 	case SPDK_BDEV_IO_TYPE_WRITE_ZEROES:
 		rc = spdk_bdev_write_zeroes_blocks(pt_node->base_desc, pt_ch->base_ch,
