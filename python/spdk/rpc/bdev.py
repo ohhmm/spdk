@@ -1313,6 +1313,21 @@ def bdev_passthru_delete(client, name):
     return client.call('bdev_passthru_delete', params)
 
 
+def bdev_passthru_get_stats(client, name):
+    """Get statistics of a passthru block device.
+    Args:
+        name: name of passthru bdev
+    Returns:
+        Statistics including read/write counts and bytes
+    """
+    print("CALL: bdev_passthru_get_stats called.")
+    params = dict()
+    params['name'] = name
+    res = client.call('bdev_passthru_get_stats', params)
+    print("CALL: bdev_passthru_get_stats reesult is ", res)
+    return res
+
+
 def bdev_opal_create(client, nvme_ctrlr_name, nsid, locking_range_id, range_start, range_length, password):
     """Create opal virtual block devices from a base nvme bdev.
     Args:

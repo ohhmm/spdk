@@ -1266,6 +1266,16 @@ if __name__ == "__main__":
     p.add_argument('name', help='pass through bdev name')
     p.set_defaults(func=bdev_passthru_delete)
 
+    def bdev_passthru_get_stats(args):
+        print("CALL: bdev_passthru_get_stats called.")
+        print_dict(rpc.bdev.bdev_passthru_get_stats(args.client, name=args.name))
+        rpc.bdev.bdev_passthru_get_stats(args.client, name=args.name)
+        print("CALL: bdev_passthru_get_stats returned.")
+
+    p = subparsers.add_parser('bdev_passthru_get_stats', help='Get statistics of a passthru block device')
+    p.add_argument('name', help='passthru bdev name')
+    p.set_defaults(func=bdev_passthru_get_stats)
+
     def bdev_get_bdevs(args):
         print_dict(rpc.bdev.bdev_get_bdevs(args.client,
                                            name=args.name, timeout=args.timeout_ms))
